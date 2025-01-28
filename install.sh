@@ -214,7 +214,7 @@ services:
     volumes:
         - '/var/run/docker.sock:/var/run/docker.sock'
         - 'portainer_data:/data'
-    restart: unless-stopped
+    restart: always
     image: portainer/portainer-ce:latest
     command: -H unix:///var/run/docker.sock
     restart: always
@@ -240,8 +240,8 @@ EOL
     # CERTIFICADOS LETSENCRYPT
     #########################################################
     echo -e "${YELLOW}📝 Gerando certificado LetsEncrypt...${NC}"
-    touch acme.json
-    sudo chmod 600 acme.json
+    touch ./ssl-certs/acme.json
+    sudo chmod 600 ./ssl-certs/acme.json
     
     #########################################################
     # INICIANDO CONTAINER

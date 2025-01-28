@@ -115,7 +115,7 @@ echo -e "${BLUE}📋 Resumo das Informações${NC}"
 echo -e "${GREEN}================================${NC}"
 echo -e "📧 Seu E-mail: ${YELLOW}$email${NC}"
 echo -e "🌐 Dominio do Traefik: ${YELLOW}$traefik${NC}"
-echo -e "🔑 Senha do Traefik: ${YELLOW}$senha${NC}"
+echo -e "🔑 Senha do Traefik: ${YELLOW}********${NC}"
 echo -e "🌐 Dominio do Portainer: ${YELLOW}$portainer${NC}"
 echo -e "🌐 Dominio do Edge: ${YELLOW}$edge${NC}"
 echo -e "${GREEN}================================${NC}"
@@ -154,84 +154,56 @@ if [ "$confirma1" == "y" ]; then
     cat > docker-compose.yml <<EOL
 services:
   traefik:
-    image: traefik:latest
     container_name: traefik
-    ports:
-      - 80:80
-      - 443:443
-    expose:
-      - 8080  # expose the dashboard only in traefik network 
-    volumes:
-      - ./ssl-certs:/ssl-certs
-      - ./etc/traefik:/etc/traefik
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
+    image: "traefik:latest"
+    restart: always
     command:
-      - --global.checkNewVersion=true
-      - --global.sendAnonymousUsage=false
-      - --log.level=ERROR  # DEBUG, INFO, WARNING, ERROR, CRITICAL
-      - --log.format=common  # common, json, logfmt
-      - --log.filePath=/etc/traefik/traefik.log
-      - --log.accesslog.format=common
-      - --log.accesslog.filePath=/var/log/traefik/access.log
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
       - --api.insecure=true
       - --api.dashboard=true
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.forwardedHeaders.insecure=true
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entryPoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.websecure.forwardedHeaders.insecure=true
-      - --certificatesResolvers.staging.acme.email=$email
-      - --certificatesResolvers.staging.acme.storage=/ssl-certs/acme.json
-      - --certificatesResolvers.staging.acme.caServer="https://acme-staging-v02.api.letsencrypt.org/directory"
-      - --certificatesResolvers.staging.acme.httpChallenge.entryPoint=web
-      - --certificatesResolvers.production.acme.email=$email
-      - --certificatesResolvers.production.acme.storage=/ssl-certs/acme.json
-      - --certificatesResolvers.production.acme.caServer="https://acme-staging-v02.api.letsencrypt.org/directory"
-      - --certificatesResolvers.production.acme.httpChallenge.entryPoint=web
-      - --providers.docker.exposedByDefault=false  # Default is true
-      - --providers.file.directory=./etc/traefik  # watch for dynamic configuration changes
-      - --providers.file.watch=true
+      - --providers.docker
+      - --log.level=ERROR
+      - --certificatesresolvers.leresolver.acme.httpchallenge=true
+      - --certificatesresolvers.leresolver.acme.email=$email
+      - --certificatesresolvers.leresolver.acme.storage=./acme.json
+      - --certificatesresolvers.leresolver.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./acme.json:/acme.json"
     labels:
       - "traefik.http.routers.http-catchall.rule=hostregexp(\`{host:.+}\`)"
       - "traefik.http.routers.http-catchall.entrypoints=web"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
-      - "traefik.enable=true"  # <== Enable traefik on itself to view dashboard and assign subdomain to view it
-      - "traefik.http.routers.traefik_https.rule=Host(\`$traefik\`)" # <== Setting the domain for the dashboard
-      - "traefik.http.routers.traefik_https.entrypoints=web,websecure"
-      - "traefik.http.routers.traefik_https.service=traefik-service"
-      - "traefik.http.services.traefik-service.loadbalancer.server.port=8080"
-      - "traefik.http.routers.traefik_https.tls=true"
-      - "traefik.http.routers.traefik_https.tls.certresolver=production"
-      - "traefik.http.routers.traefik_https.middlewares=basic-auth-global"
-      - "traefik.http.middlewares.basic-auth-global.basicauth.users=$senha"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(\`$traefik\`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=leresolver"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=$senha"
+      - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
   portainer:
-    container_name: portainer
-    expose:
-      - 9000
-      - 8000
-    volumes:
-        - '/var/run/docker.sock:/var/run/docker.sock'
-        - 'portainer_data:/data'
-    restart: always
     image: portainer/portainer-ce:latest
     command: -H unix:///var/run/docker.sock
     restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
     labels:
-      - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
-      - "traefik.http.routers.portainer.entrypoints=web,websecure"
-      - "traefik.http.routers.portainer.rule=Host(\`$portainer\`)" # <== Setting the domain for the dashboard
-      - "traefik.http.routers.portainer.service=portainer-service"
-      - "traefik.http.services.portainer-service.loadbalancer.server.port=9000"
-      - "traefik.http.routers.portainer.tls=true"
-      - "traefik.http.routers.portainer.tls.certresolver=production"
-      - "traefik.http.routers.edge.entrypoints=web,websecure"
-      - "traefik.http.routers.edge.rule=Host(\`$edge\`)" # <== Setting the domain for the dashboard
-      - "traefik.http.routers.edge.service=edge-service"
-      - "traefik.http.services.edge-service.loadbalancer.server.port=8000"
-      - "traefik.http.routers.edge.tls=true"
-      - "traefik.http.routers.edge.tls.certresolver=production"
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(\`$portainer\`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.services.frontend.loadbalancer.server.port=9000"
+      - "traefik.http.routers.frontend.service=frontend"
+      - "traefik.http.routers.frontend.tls.certresolver=leresolver"
+      - "traefik.http.routers.edge.rule=Host(\`$edge\`)"
+      - "traefik.http.routers.edge.entrypoints=websecure"
+      - "traefik.http.services.edge.loadbalancer.server.port=8000"
+      - "traefik.http.routers.edge.service=edge"
+      - "traefik.http.routers.edge.tls.certresolver=leresolver"
 volumes:
   portainer_data:
 EOL
@@ -240,8 +212,8 @@ EOL
     # CERTIFICADOS LETSENCRYPT
     #########################################################
     echo -e "${YELLOW}📝 Gerando certificado LetsEncrypt...${NC}"
-    touch ./ssl-certs/acme.json
-    sudo chmod 600 ./ssl-certs/acme.json
+    touch acme.json
+    sudo chmod 600 acme.json
     
     #########################################################
     # INICIANDO CONTAINER

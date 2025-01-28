@@ -230,6 +230,9 @@ docker-compose up -d
 ---
 ## 💽 Caso o procedimento acima não der certo essa é a instalação, por terminal.
 
+Gerador de Senha:
+https://packtypebot.com.br/gerador/htpasswd.php
+
 <p>Copie e cole no Terminal da sua VPS:</p>
 
 ```

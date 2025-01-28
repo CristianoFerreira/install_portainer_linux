@@ -1,0 +1,25 @@
+version: '3'
+services:
+  traefik:
+    image: traefik
+    container_name: traefik
+    ports:
+      - 80:80
+      - 443:443
+    expose:
+      - 8080 # expose the dashboard only in traefik network 
+    volumes:
+      - ./ssl-certs:/ssl-certs
+      - ./etc/traefik:/etc/traefik
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
+      - "traefik.http.routers.traefik_https.rule=Host(`traefik.cristianoferreira.me`)" # <== Setting the domain for the dashboard
+      - "traefik.http.routers.traefik_https.entrypoints=web,websecure"
+      - "traefik.http.routers.traefik_https.service=traefik-service"
+      - "traefik.http.services.traefik-service.loadbalancer.server.port=8080"
+      - "traefik.http.routers.traefik_https.tls=true"
+      - "traefik.http.routers.traefik_https.tls.certresolver=production"
+      - "traefik.http.routers.traefik_https.middlewares=basic-auth-global"
+      - "traefik.http.middlewares.basic-auth-global.basicauth.usersfile=/etc/traefik/users"

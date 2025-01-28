@@ -1,0 +1,35 @@
+version: '3.3'
+services:
+    portainer-ce:
+        container_name: portainer
+        expose:
+          - 9000
+          - 8000
+        volumes:
+            - '/var/run/docker.sock:/var/run/docker.sock'
+            - 'portainer_data:/data'
+        restart: unless-stopped
+        image: portainer/portainer-ce:latest
+        command: -H unix:///var/run/docker.sock
+        labels:
+          - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
+          - "traefik.http.routers.portainer.entrypoints=web,websecure"
+          - "traefik.http.routers.portainer.rule=Host(`portainer.cristianoferreira.me`)" # <== Setting the domain for the dashboard
+          - "traefik.http.routers.portainer.service=portainer-service"
+          - "traefik.http.services.portainer-service.loadbalancer.server.port=9000"
+          - "traefik.http.routers.portainer.tls=true"
+          - "traefik.http.routers.portainer.tls.certresolver=production"
+           - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
+          - "traefik.http.routers.edge.entrypoints=web,websecure"
+          - "traefik.http.routers.edge.rule=Host(`edge.cristianoferreira.me`)" # <== Setting the domain for the dashboard
+          - "traefik.http.routers.edge.service=edge-service"
+          - "traefik.http.services.edge-service.loadbalancer.server.port=8000"
+          - "traefik.http.routers.edge.tls=true"
+          - "traefik.http.routers.edge.tls.certresolver=production"
+volumes:
+  portainer_data:
+
+networks:
+  default:
+    external:
+      name: traefik_default

@@ -198,7 +198,7 @@ services:
       - "traefik.http.routers.http-catchall.entrypoints=web"
       - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
       - "traefik.enable=true"  # <== Enable traefik on itself to view dashboard and assign subdomain to view it
-      - "traefik.http.routers.traefik_https.rule=Host(`traefik.cristianoferreira.me`)" # <== Setting the domain for the dashboard
+      - "traefik.http.routers.traefik_https.rule=Host(\`$traefik\`)" # <== Setting the domain for the dashboard
       - "traefik.http.routers.traefik_https.entrypoints=web,websecure"
       - "traefik.http.routers.traefik_https.service=traefik-service"
       - "traefik.http.services.traefik-service.loadbalancer.server.port=8080"

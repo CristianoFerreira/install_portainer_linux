@@ -225,3 +225,25 @@ docker-compose up -d
 
 
 ### Portainer: Access https://portainer.yourdomain.me to reach the secure Portainer management interface. Follow the prompts to set up Portainer on your first use.
+
+
+---
+## 💽 Caso o procedimento acima não der certo essa é a instalação, por terminal.
+
+<p>Copie e cole no Terminal da sua VPS:</p>
+
+```
+sudo apt update && sudo apt install -y git && git clone https://github.com/CristianoFerreira/install_portainer_linux.git && cd install_portainer_linux && sudo chmod +x install.sh && ./install.sh
+```
+
+## Caso  instância do Portainer expire
+
+Abra o terminal e rode os seguintes comandos:
+
+```
+cd ..
+cd Portainer
+docker compose down --remove-orphans
+docker compose pull portainer
+docker compose up -d
+```

@@ -19,7 +19,6 @@ services:
           - "traefik.http.services.portainer-service.loadbalancer.server.port=9000"
           - "traefik.http.routers.portainer.tls=true"
           - "traefik.http.routers.portainer.tls.certresolver=production"
-           - "traefik.enable=true" # <== Enable traefik on itself to view dashboard and assign subdomain to view it
           - "traefik.http.routers.edge.entrypoints=web,websecure"
           - "traefik.http.routers.edge.rule=Host(`edge.cristianoferreira.me`)" # <== Setting the domain for the dashboard
           - "traefik.http.routers.edge.service=edge-service"
